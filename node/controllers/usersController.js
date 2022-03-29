@@ -96,39 +96,35 @@ exports.updateUsers = (req, res) => {
     }
   );
 };
-
-exports.checkLogin = (req, res) => {
-  console.log("heloo");
-  const { username, password } = req.body;
-  console.log(req.body);
-  let flag = false;
-  console.log("incorrectlogged");
-  connector.query("SELECT * FROM users", (error, result) => {
-    result.forEach((user) => {
-      if (user.username === username && user.password === password) {
-        flag = true;
-      }
-    });
-    if (flag) {
-      req.session["isLoggedIn"] = 1;
-      req.session["username"] = username;
-      res.json({ status: 1, data: username });
-      console.log("logged");
+exports.check = (req, res) => {
+  const { username, password } = req.params;
+  const sql = `SELECT * FROM users WHERE username=? and password=?`;
+  connector.query(sql, [username, password], (err, results) => {
+    if (err) {
+      res.json(err);
     } else {
-      req.session["isLoggedIn"] = 0;
-      console.log("incorrectlogged");
-      res.json({ status: 0, data: "incorrect login details" });
+      if (results.length === 0) {
+        req.session["isLoggedIn"] = 0;
+        res.json({ status: 0, data: "incorrect login details" });
+      } else {
+        req.session["username"] = req.params.username;
+        req.session["isLoggedIn"] = 1;
+        res.json({ status: 1, data: req.params.username });
+      }
     }
   });
 };
-exports.loggedUser = (req, res) => {
-  console.log("loggeduser");
+exports.loggeduser = (req, res) => {
   if (req.session.isLoggedIn === 1) {
-    const sql = "SELECT * FROM users where username=?;";
-    connector.query(sql, [req.session.username], (error, result) => {
-      res.json({ error, result });
+    let sql = `select * from users where username=?`;
+    connector.query(sql, [req.session.username], function (err, results) {
+      if (err) {
+        res.json(err);
+      } else {
+        res.json({ status: 1, data: results });
+      }
     });
   } else {
-    res.json({ status: 0, debug_data: "you are not logged in " });
+    res.json({ status: 0, debug_data: "you are not logged in" });
   }
 };
